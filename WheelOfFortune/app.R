@@ -16,7 +16,6 @@ input <- list()
 output <- list()
 rv <- list()
 
-input$phrase1 <- "HEJ Børn"
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
@@ -43,8 +42,9 @@ ui <- fluidPage(
       mainPanel(
         fluidRow(
           #
-          h1(paste(input$phrase1)),
-          plotOutput("announce_plot")
+          uiOutput("see_phrase"),
+          plotOutput("announce_correct"),
+          uiOutput("announce_wrong")
         ),
         fluidRow(
           plotOutput("wrong_let_plot")
@@ -92,6 +92,12 @@ server <- function(input, output) {
                 label   = "Phrase Guess:",choices = 1:as.integer(input$n_q))
   })
   
+  #See the selected phrase
+  
+  output$see_phrase <- renderUI({
+    h1(paste(input[[paste0("phrase",input$cur_phrase)]]))
+  })
+  
   #################################  On submission
   observeEvent(input$submit,{
     #add letter
@@ -106,6 +112,8 @@ server <- function(input, output) {
                                 status = 1
                                 )
                            )
+    #conditional announce type, plot or text 
+
     print(rv$df_guesses)                           
     shinyjs::reset("cur_guess_let")
   })
@@ -118,6 +126,8 @@ server <- function(input, output) {
       shinyjs::enable(id = "submit")
     } 
     
+    print(str(input$phrase1))
+    
   })
    
    output$wrong_let_plot <- renderPlot({
@@ -125,10 +135,7 @@ server <- function(input, output) {
       plot(rnorm(1:10))
    })
    
-   output$announce_plot <- renderPlot({
-     #
-     rv$p + rv$p_layer
-   })
+
 }
 
 # Run the application 
