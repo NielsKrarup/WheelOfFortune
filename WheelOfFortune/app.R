@@ -20,7 +20,7 @@ rv <- list()
 # Define UI for application that draws a histogram
 ui <- fluidPage(
   useShinyjs(),
-    navbarPage(title = "NavBarPage_",
+    navbarPage(title = "NavBarPage_",selected = "tabPanel2",
       tabPanel(title = "tabPanel1",
                numericInput(inputId = "n_q", 
                             label = "Number of questions / phrases", 
@@ -35,7 +35,9 @@ ui <- fluidPage(
       sidebarPanel(
         uiOutput("ui_cur_phrase"),
         textInput(inputId = "cur_guess_let", label = "Letter Guess", placeholder = "input a letter"),
-        uiOutput("ui_submit")
+        #uiOutput("ui_submit"),
+        actionButton(inputId = "submit", label = "Submit!"),
+        uiOutput("ui_test")
       ),
       
       # Show a plot of the generated distribution
@@ -65,23 +67,31 @@ server <- function(input, output) {
   #base plot for announcing 
   rv$p <- ggplot(data = data.frame())
   
-  #Dynamic submit-button. 
-  output$ui_submit <- renderUI({
-    #req(input$cur_guess_let)
+  # #Dynamic submit-button. 
+  # output$ui_submit <- renderUI({
+  #   #req(input$cur_guess_let)
+  #   validate(
+  #     need(nchar(input$cur_guess_let) == 1, "Select Only one letter"),
+  #     need(input$cur_guess_let != "K", "already tried!")
+  #   )
+  # 
+  #   actionButton(inputId = "submit", label = "Submit!")
+  #   
+  # })
+  
+  output$ui_test <- renderUI({
     validate(
       need(nchar(input$cur_guess_let) == 1, "Select Only one letter"),
       need(input$cur_guess_let != "K", "already tried!")
     )
-
-    actionButton(inputId = "submit", label = "Submit!")
-    
+    NULL
   })
   
   #dynamically generated phrases for input
   output$ui_phrases <- renderUI({
     numPhrases <- as.integer(input$n_q)
     lapply(1:numPhrases, function(i) {
-      textInput(inputId = paste0("phrase",i),label = paste("Phrase", i), value = NULL )
+      textInput(inputId = paste0("phrase",i),label = paste("Phrase", i), value = "Køb en kat" )
     })
   })
   
@@ -101,10 +111,12 @@ server <- function(input, output) {
   #################################  On submission
   observeEvent(input$submit,{
     #add letter
-    rv$p_layer <- geom_label(data = data.frame(x = 0, y = 0, label = input$cur_guess_let),
+    print("looking in submit")
+    rv$p_layer <- geom_label(data = data.frame(x = 1:4, y = 0, label = input$cur_guess_let),
                              aes(x = x, y = y, label = label))
     
-    print(rv$df_guesses)
+    rv$p_layer_data <- isolate(data.frame(x = 1:4, y = 0, label = input$cur_guess_let))
+    
     rv$df_guesses <- rbind(rv$df_guesses,
                            data.frame(
                                 let = input$cur_guess_let,
@@ -114,29 +126,38 @@ server <- function(input, output) {
                            )
     #conditional announce type, plot or text 
 
-    print(rv$df_guesses)                           
+
     shinyjs::reset("cur_guess_let")
+    
+    
+    
   })
   
-  observe({
-    print(!is.character(input$cur_guess_let) | nchar(input$cur_guess_let) != 1)
-    if(!is.character(input$cur_guess_let) | nchar(input$cur_guess_let) != 1){
-      shinyjs::disable(id = "submit")
-    }else{
-      shinyjs::enable(id = "submit")
-    } 
-    
-    print(str(input$phrase1))
-    
+  
+  output$announce_correct <- renderPlot({
+    req(input$submit)
+
+        ggplot(data = data.frame(x = 1:10, y = 1), 
+           aes(x = x, y = y)) + geom_label(data = rv$p_layer_data, aes(x=x, y=y, label=label))
   })
-   
-   output$wrong_let_plot <- renderPlot({
-      # generate bins based on input$bins from ui.R
-      plot(rnorm(1:10))
-   })
+  
+
+  
+  observe({
+
+    if(!is.character(input$cur_guess_let) | nchar(input$cur_guess_let) != 1){
+
+      shinyjs::disable(id = "submit")
+
+    }else{
+
+      shinyjs::enable(id = "submit")
+    }
+  })
+
    
 
-}
+} #server end
 
 # Run the application 
 shinyApp(ui = ui, server = server)
