@@ -1,53 +1,34 @@
-runApp(shinyApp(
-  ui = fluidPage(
-    headerPanel("Dynamic number of plots"),
+if (interactive()) {
+  
+  ui <- fluidPage(
+    sliderInput("n", "Number of observations", 2, 1000, 500),
+    plotOutput("plot")
+  )
+  
+  server <- function(input, output, session) {
     
-    mainPanel(
-      actionButton("addplot", "Add plot"),
-      uiOutput("plots")
-    )
-  ),
-  server = function(input, output, session) {
-    
-    # A variable that keeps track of the number of plots we have
-    values <- reactiveValues(
-      numPlots = 1
-    )
-    
-    # Whenever the "add plot" button is pressed, increment num plots by 1
-    observeEvent(input$addplot, {
-      values$numPlots <- values$numPlots + 1
+    observe({
+      # Re-execute this reactive expression after 1000 milliseconds
+      # Do something each time this is invalidated.
+      # The isolate() makes this observer _not_ get invalidated and re-executed
+      # when input$n changes.
+      print(paste("The value of input$n is", isolate(input$n)))
     })
     
-    # Dynamically generate the UI that creates all the plots
-    output$plots <- renderUI({
-      # Create a list of `plotOutput` objects (for each plot, use a unique ID)
-      plot_output_list <- lapply(1:values$numPlots, function(i) {
-        plotname <- paste("plot", i, sep="")
-        plotOutput(plotname, height = 280, width = 250)
-      })
-      
-      # Place all the plot outputs inside a shiny `tagList()`
-      do.call(tagList, plot_output_list)
-    })
+    rv <- reactiveValues(n = 1)
     
-    # Every time the number of plots changes (button is clicked),
-    # re-generate the render functions for all the plots
-    observeEvent(values$numPlots, {
-      for (i in 1:values$numPlots) {
-        local({
-          my_i <- i
-          plotname <- paste("plot", my_i, sep="")
-          
-          output[[plotname]] <- renderPlot({
-            plot(1:my_i, 1:my_i,
-                 xlim = c(1, values$numPlots),
-                 ylim = c(1, values$numPlots),
-                 main = paste("1:", my_i, ".  n is ", values$numPlots, sep = "")
-            )
-          })
-        })
-      }
+    # Generate a new histogram at timed intervals, but not when
+    # input$n changes.
+    output$plot <- renderPlot({
+      if(rv$n < 5) invalidateLater(1000)
+        # Re-execute this reactive expression after 2000 milliseconds
+        hist(rnorm(input$n), main = paste("hej:", isolate(rv$n)))
+        isolate({rv$n <- rv$n + 1 })
+        print(rv$n)
+
+
     })
   }
-))
+  
+  shinyApp(ui, server)
+}

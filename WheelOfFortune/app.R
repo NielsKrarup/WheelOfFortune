@@ -12,10 +12,6 @@ library(shinyjs)
 
 library(ggplot2)
 
-input <- list()
-output <- list()
-rv <- list()
-
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
@@ -61,6 +57,7 @@ ui <- fluidPage(
 server <- function(input, output) {
   
   rv <- reactiveValues()
+  rv$cnt <- 1
   rv$df_guesses <- data.frame(let = character(),
                               phrase = character(),
                               status = character())
@@ -112,10 +109,10 @@ server <- function(input, output) {
   observeEvent(input$submit,{
     #add letter
     print("looking in submit")
-    rv$p_layer <- geom_label(data = data.frame(x = 1:4, y = 0, label = input$cur_guess_let),
+    rv$p_layer <- geom_label(data = data.frame(x = 1:10, y = 0, label = input$cur_guess_let),
                              aes(x = x, y = y, label = label))
     
-    rv$p_layer_data <- isolate(data.frame(x = 1:4, y = 0, label = input$cur_guess_let))
+    rv$p_layer_data <- data.frame(x = 1:5, y = 0, label = input$cur_guess_let)
     
     rv$df_guesses <- rbind(rv$df_guesses,
                            data.frame(
@@ -124,6 +121,7 @@ server <- function(input, output) {
                                 status = 1
                                 )
                            )
+    rv$cnt <- 1
     #conditional announce type, plot or text 
 
 
@@ -136,9 +134,16 @@ server <- function(input, output) {
   
   output$announce_correct <- renderPlot({
     req(input$submit)
+    
+   if(isolate(rv$cnt < 5)) invalidateLater(1000)
 
-        ggplot(data = data.frame(x = 1:10, y = 1), 
-           aes(x = x, y = y)) + geom_label(data = rv$p_layer_data, aes(x=x, y=y, label=label))
+        p <- ggplot(data = rv$p_layer_data, aes(x = x, y = y)) + geom_point(size = NA) +
+          geom_label(data = subset(rv$p_layer_data, x <= isolate(rv$cnt)), aes(x=x, y=y, label=label), size = 10)
+        
+        #increase counter
+        isolate({rv$cnt <- rv$cnt + 1})
+        beepr::beep()
+        p
   })
   
 

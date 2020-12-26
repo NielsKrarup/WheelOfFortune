@@ -21,3 +21,11 @@ df_wrong_letters <- foo_df_let(let = letters)
 df_wrong_letters
 p <- ggplot(data = df_wrong_letters, aes(x = x, y = y))
     p + geom_label(aes(label = let), size = 25)
+
+    
+    rv <- list()
+    rv$p_layer_data <- data.frame(x = 1:5, y = 0, label = "A")
+    rv$cnt <- 3
+    ggplot(data = rv$p_layer_data, aes(x=x, y=y)) + geom_point(size = NA) +
+    geom_label(data = subset(rv$p_layer_data, x <= rv$cnt), aes(x=x, y=y, label=label))
+p2
