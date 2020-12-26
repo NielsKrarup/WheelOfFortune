@@ -142,7 +142,6 @@ server <- function(input, output) {
         
         #increase counter
         isolate({rv$cnt <- rv$cnt + 1})
-        beepr::beep()
         p
   })
   
