@@ -63,6 +63,4 @@ letter_checker <- function(phrase = DF, letter = "X"){
  
 }
 
-beepr::beep()
-
 

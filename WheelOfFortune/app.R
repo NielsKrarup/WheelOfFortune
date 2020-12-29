@@ -11,6 +11,7 @@ library(shiny)
 library(shinyjs)
 library(ggplot2)
 library(dplyr)
+library(beepr)
 
 source(file = "planb.R")
 
@@ -64,6 +65,7 @@ ui <- fluidPage(
 server <- function(input, output) {
   
   rv <- reactiveValues()
+
   rv$cnt <- 1
   rv$df_guesses <- data.frame(let = character(),
                               phrase = character(),
@@ -88,7 +90,8 @@ server <- function(input, output) {
     lapply(1:numPhrases, function(i) {
       tagList(
       textInput(inputId = paste0("phrase",i),label = paste("Phrase", i), value = "Køb en kat" ),
-      textInput(inputId = paste0("phrase_hint",i), label = paste("Phrase", i, "hint"), placeholder = "Optional hint for phrase" )
+      textInput(inputId = paste0("phrase_hint",i), label = paste("Phrase", i, "hint"), placeholder = "Optional hint for phrase" ),
+      h1("------")
       )
     })
   })
@@ -150,6 +153,10 @@ server <- function(input, output) {
     #set label as either the slots/placements or a "WRONG"
     if(obj$correct_bool){
       label <- as.character(obj$occurrences)
+      rv$beep <- sample(x = c(1,2,7), size = 1, replace = T)
+      
+      tags$audio(src = "shotgun.wav", type = "audio/wav", autoplay = NA, controls = NA)
+      
       #update overview table
       print("inside correct ifelse")
       rv$overview_df_plot[rv$overview_df_plot$id == input$cur_phrase & rv$overview_df_plot$let == letter_tmp, "col"] <- "green"
@@ -157,6 +164,8 @@ server <- function(input, output) {
       
     }else{
       label <- paste(letter_tmp, "is Wrong!")
+      rv$beep <- 9
+      
       rv$overview_df_plot[rv$overview_df_plot$id == input$cur_phrase & rv$overview_df_plot$let == letter_tmp, "col"] <- "red"
       rv$overview_df_plot[rv$overview_df_plot$id == input$cur_phrase & rv$overview_df_plot$let == letter_tmp, "alpha"] <- 1
       
@@ -190,6 +199,8 @@ server <- function(input, output) {
 
         p <- ggplot(data = subset(rv$p_layer_data, x <= isolate(rv$cnt)), aes(x = x, y = y, label = label)) +
               geom_text(size = 50) + xlim(c(0,(rv$n_occ + 1))) + theme_void()
+        beep(sound = rv$beep)
+        
         
         #increase counter
         isolate({rv$cnt <- rv$cnt + 1})
@@ -202,7 +213,7 @@ server <- function(input, output) {
     print(rv$overview_df_plot)
     #Overview plot
     ggplot(data = subset(rv$overview_df_plot, id == as.numeric(input$cur_phrase)), aes(x=x, y=y, label = let, col = col)) + 
-      geom_text(alpha = subset(rv$overview_df_plot, id == as.numeric(input$cur_phrase))$alpha, size = 10) + 
+      geom_text(alpha = subset(rv$overview_df_plot, id == as.numeric(input$cur_phrase))$alpha, size = 18) + 
       scale_color_manual(values = c("grey" = "grey", "green" = "green", "red" = "red")) + 
       theme(axis.line=element_blank(),axis.text.x=element_blank(),
             axis.text.y=element_blank(),axis.ticks=element_blank(),
