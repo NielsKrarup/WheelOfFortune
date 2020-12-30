@@ -22,17 +22,30 @@ LET_DK <- c(LETTERS, "Æ", "Ø", "Å")
 # Define UI for application that draws a histogram
 ui <- fluidPage(
   useShinyjs(),
-    navbarPage(title = "NavBarPage_",selected = "tabPanel1",
-      tabPanel(title = "tabPanel1",
+    navbarPage(title = "Wheel of Fortune!",selected = "Setup",
+      tabPanel(title = "Setup",
+               # Application title
+               uiOutput("appTitleUI"),
+               br(),
+               column(width = 3,
                numericInput(inputId = "n_q", 
                             label = "Number of questions / phrases", 
                             value = 1, min = 1, step = 1, 
                             width = "100px"),
                uiOutput("ui_phrases")
                ),
+                 column(7,
+                        imageOutput("image2")
+                 ),
+                 column(2,
+                        p("LA Ring"),
+                        p('Sommerdag ved Roskilde Fjord (1900)'),
+                        p('Randers Kunstmuseum')
+                 )
+               ),
       
       
-      tabPanel(title = "tabPanel2",
+      tabPanel(title = "GUESS!",
    
    # Sidebar with a slider input for number of bins 
    sidebarLayout(
@@ -63,35 +76,85 @@ ui <- fluidPage(
 )
 # Define server logic required to draw a histogram
 server <- function(input, output) {
+
+
+# Reactive values ---------------------------------------------------------
+
   
   rv <- reactiveValues()
 
   rv$cnt <- 1
-  rv$df_guesses <- data.frame(let = character(),
-                              phrase = character(),
-                              status = character())
+
   #base plot for announcing 
   rv$p <- ggplot(data = data.frame())
   
 
+# Pic ---------------------------------------------------------------------
+
+  
+  # pics
+  output$image2 <- renderImage({
+    
+    invalidateLater(1000)
+    
+    sec <- as.numeric(format(
+      Sys.time(), format = "%S"
+    )) %% 10
+    sample <- as.logical(runif(1) < 0.5)
+    
+    if (sec == 9 && sample == 0) {
+      return(list(
+        src = "www/Thyge.jpg",
+        contentType = "image/jpeg",
+        alt = "Face",
+        style="display: block; margin-left: auto; margin-right: auto;"
+      ))
+    } else {
+      return(list(
+        src = "www/LARing.jpg",
+        width = "800",
+        filetype = "image/jpeg",
+        alt = "This is a chainring",
+        style="display: block; margin-left: auto; margin-right: auto;"
+      ))
+    }
+    
+  }, deleteFile = FALSE)
+  
+  
+
 # Dynamic UI --------------------------------------------------------------
+  # Application title, with clock 
+  output$appTitleUI <- renderUI({
+    invalidateLater(1000)
+    h1(paste0("Nytårs LykkehjulsQuiz ", 
+              format(
+                as.Date(Sys.Date(), format = "%d/%m/%Y"), "%Y"
+              ),
+              "  -   UCT+1:   ",
+              format(
+                Sys.time(), format = "%H:%M:%S"
+              ))
+    )
+  })
   #requierement for submit button
   output$ui_test <- renderUI({
     validate(
-      need(nchar(input$cur_guess_let) == 1, "Select Only one letter"),
-      need(input$cur_guess_let != "K", "already tried!")
-    )
+      need(nchar(input$cur_guess_let) == 1, "Select Only one letter")    
+      )
     NULL
   })
   
   #dynamically generated phrases for input
   output$ui_phrases <- renderUI({
+    
     numPhrases <- as.integer(input$n_q)
+    
     lapply(1:numPhrases, function(i) {
       tagList(
       textInput(inputId = paste0("phrase",i),label = paste("Phrase", i), value = "Køb en kat" ),
       textInput(inputId = paste0("phrase_hint",i), label = paste("Phrase", i, "hint"), placeholder = "Optional hint for phrase" ),
-      h1("------")
+      p("----------------------------------------")
       )
     })
   })
@@ -136,16 +199,12 @@ server <- function(input, output) {
     observeEvent(input$submit,{
       
     #add letter
-    print("looking in submit")
     phrase_tmp <- input[[paste0("phrase",input$cur_phrase)]]
     letter_tmp <- toupper(input$cur_guess_let)
-    
-    
-    
+
     #Check letter guess
     obj <-  letter_checker(phrase = phrase_tmp, letter = letter_tmp)
-    print(obj)
-    
+
     #if correct
     n_occur <- length(obj$occurrences)
     rv$n_occ <- n_occur
@@ -155,10 +214,7 @@ server <- function(input, output) {
       label <- as.character(obj$occurrences)
       rv$beep <- sample(x = c(1,2,7), size = 1, replace = T)
       
-      tags$audio(src = "shotgun.wav", type = "audio/wav", autoplay = NA, controls = NA)
-      
       #update overview table
-      print("inside correct ifelse")
       rv$overview_df_plot[rv$overview_df_plot$id == input$cur_phrase & rv$overview_df_plot$let == letter_tmp, "col"] <- "green"
       rv$overview_df_plot[rv$overview_df_plot$id == input$cur_phrase & rv$overview_df_plot$let == letter_tmp, "alpha"] <- 1
       
@@ -168,39 +224,38 @@ server <- function(input, output) {
       
       rv$overview_df_plot[rv$overview_df_plot$id == input$cur_phrase & rv$overview_df_plot$let == letter_tmp, "col"] <- "red"
       rv$overview_df_plot[rv$overview_df_plot$id == input$cur_phrase & rv$overview_df_plot$let == letter_tmp, "alpha"] <- 1
-      
     }
-
     
     rv$p_layer_data <- data.frame(x = 1:n_occur, y = 0, label = label)
     
-    rv$df_guesses <- rbind(rv$df_guesses,
-                           data.frame(
-                                let = input$cur_guess_let,
-                                phrase = input$cur_phrase,
-                                status = obj$correct_bool
-                                )
-                           )
     rv$cnt <- 1
     #conditional announce type, plot or text 
 
 
     shinyjs::reset("cur_guess_let")
-    
-
-    
+ 
   })
+  
+
+# on chaning phrase -------------------------------------------------------
+
+observeEvent(input$cur_phrase, {
+  rv$p_layer_data <- data.frame(x = 1, y = 0, label = "")
+  rv$cnt <- 1
+  rv$n_occ <- 1
+})  
   
 #Announcer
   output$announce_correct <- renderPlot({
     req(input$submit)
     
+    
    if(isolate(rv$cnt < rv$n_occ)) invalidateLater(1000)
 
         p <- ggplot(data = subset(rv$p_layer_data, x <= isolate(rv$cnt)), aes(x = x, y = y, label = label)) +
               geom_text(size = 50) + xlim(c(0,(rv$n_occ + 1))) + theme_void()
+        #beep
         beep(sound = rv$beep)
-        
         
         #increase counter
         isolate({rv$cnt <- rv$cnt + 1})
@@ -210,7 +265,7 @@ server <- function(input, output) {
 #Plot overview
   output$plot_overview <- renderPlot({
     req(input$submit)
-    print(rv$overview_df_plot)
+
     #Overview plot
     ggplot(data = subset(rv$overview_df_plot, id == as.numeric(input$cur_phrase)), aes(x=x, y=y, label = let, col = col)) + 
       geom_text(alpha = subset(rv$overview_df_plot, id == as.numeric(input$cur_phrase))$alpha, size = 18) + 
