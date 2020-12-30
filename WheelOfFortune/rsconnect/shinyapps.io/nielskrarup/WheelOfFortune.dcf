@@ -1,0 +1,12 @@
+name: WheelOfFortune
+title: WheelOfFortune
+username:
+account: nielskrarup
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 3435802
+bundleId: 4042271
+url: https://nielskrarup.shinyapps.io/WheelOfFortune/
+when: 1609335194.88502
+asMultiple: FALSE
+asStatic: FALSE

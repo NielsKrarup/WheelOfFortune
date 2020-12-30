@@ -94,18 +94,19 @@ server <- function(input, output) {
   
   # pics
   output$image2 <- renderImage({
-    
+    #invalidate after 1 sec
     invalidateLater(1000)
     
     sec <- as.numeric(format(
       Sys.time(), format = "%S"
     )) %% 10
-    sample <- as.logical(runif(1) < 0.5)
+    sample <- as.logical(runif(1) < 0.25)
     
     if (sec == 9 && sample == 0) {
       return(list(
-        src = "www/Thyge.jpg",
+        src = "www/Hejse.jpg",
         contentType = "image/jpeg",
+        height = "900",
         alt = "Face",
         style="display: block; margin-left: auto; margin-right: auto;"
       ))
