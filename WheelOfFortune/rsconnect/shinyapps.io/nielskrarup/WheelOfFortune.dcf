@@ -5,8 +5,8 @@ account: nielskrarup
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 3435802
-bundleId: 4042271
+bundleId: 4042337
 url: https://nielskrarup.shinyapps.io/WheelOfFortune/
-when: 1609335194.88502
+when: 1609336462.3963
 asMultiple: FALSE
 asStatic: FALSE
